@@ -1,101 +1,240 @@
-import Image from "next/image";
+'use client';
+import Link from 'next/link';
+import { useState, useEffect, ChangeEvent } from 'react';
+import './page.css'; 
+
+// file imports 
+import { fetchNwsForecastData } from './forecast';
+import { geocodeLocation, getUserLocation } from './location';
+import { fetchMoonPhaseImage } from './moon-phase';
+
+// font awesome icons
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLocationDot } from '@fortawesome/free-solid-svg-icons';
+import { faCloud } from '@fortawesome/free-solid-svg-icons';
+import { faCircleExclamation } from '@fortawesome/free-solid-svg-icons';
+
+interface Location {
+  lat: number;
+  lon: number;
+}
+
+interface SkyObject {
+  name: string;
+  type: string;
+  time: string;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [location, setLocation] = useState<Location | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [moonPhase, setMoonPhase] = useState<string>('');
+  const [moonImage, setMoonImage] = useState<string>("https://static.wikia.nocookie.net/fnaf-the/images/4/40/Freddy_fazbear_full_body_.png");
+  const [visibleObjects, setVisibleObjects] = useState<SkyObject[]>([]);
+  const [time, setTime] = useState<Date>(new Date());
+  const [suggestions, setSuggestions] = useState<{label: string, coords: {lat: number, lng: number}, name: string}[]>([]);
+  const [locationSearchValue, setLocationSearchValue] = useState<string>("");
+  const [locationName, setLocationName] = useState<string>('');
+  const [nwsForecast, setNwsForecast] = useState<string | null>(null);
+  const [nwsForecastIcon, setNwsForecastIcon] = useState<string | null>(null);
+  const [estimatedSeeing, setEstimatedSeeing] = useState<string>('');
+  const [estimatedTransparency, setEstimatedTransparency] = useState<string>('');
+  const [forecastDay, setForecastDay] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // get user location
+  useEffect(() => {
+    getUserLocation().then((result) => {
+      if (result) {
+        setLocation(result.location);
+        setLocationName(result.name);
+      } else {
+        setError('Permission denied or unavailable');
+      }
+    });
+  }, []);
+
+  // get moon phase for user location
+  useEffect(() => {
+    if (!location) return;
+
+    (async () => {
+      console.log("App ID:", process.env.NEXT_PUBLIC_ASTRONOMY_API_ID);
+      
+      const { lat, lon } = location;
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const localFormattedDate = `${year}-${month}-${day}`;
+
+      const moonData = await fetchMoonPhaseImage(lat, lon, localFormattedDate);
+      if (moonData) {
+        setMoonImage(moonData.imageUrl);
+      } else {
+        setMoonPhase('Unknown');
+        setMoonImage('');
+      }
+
+      // get forecast for user location
+      const result = await fetchNwsForecastData(location);
+      if (result) {
+        setNwsForecast(result.forecast);
+        setNwsForecastIcon(result.icon);
+        setForecastDay(result.forecastDay);
+        setEstimatedSeeing(result.seeing);
+        setEstimatedTransparency(result.transparency);
+      } else {
+        setNwsForecast("Unable to load forecast.");
+        setNwsForecastIcon(null);
+        setEstimatedSeeing("Unknown");
+        setEstimatedTransparency("Unknown");
+        setForecastDay(null);
+      }
+    })();
+  }, [location, time]);
+
+  // get and set user time
+  const handleTimeChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newHour = parseInt(e.target.value);
+    const newTime = new Date();
+    newTime.setHours(newHour);
+    setTime(newTime);
+  };
+
+  // react components
+  return (
+    <div className="main-page">
+      <div className="main-page-header">
+        <Link href="/journal" className="nav-link">My Sky-Journal</Link>
+        <h1 className="main-header">What's In My Sky-Yard Tonight?</h1>
+      
+        <div className="main-header-location-bar">
+          <input
+            id="locationSearch"
+            type="text"
+            value={locationSearchValue}
+            placeholder="Search Location"
+            onChange={async (e) => {
+              setLocationSearchValue(e.target.value);
+              const value = e.target.value.trim();
+              if (value.length < 3) {
+                setSuggestions([]);
+                return;
+              }
+              const apiKey = process.env.NEXT_PUBLIC_OPENCAGE_API_KEY!;
+              const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(value)}&key=${apiKey}&limit=5`;
+              const res = await fetch(url);
+              const data = await res.json();
+              if (data.results && data.results.length > 0) {
+                const newSuggestions = data.results.map((r: any) => ({
+                  label: r.formatted,
+                  coords: r.geometry,
+                  name: r.components.city || r.components.town || r.components.village || r.components.county || r.components.state || r.components.country
+                }));
+                setSuggestions(newSuggestions);
+              } else {
+                setSuggestions([]);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const value = (e.target as HTMLInputElement).value.trim();
+                if (value.includes(',')) {
+                  const [lat, lon] = value.split(',').map(Number);
+                  if (!isNaN(lat) && !isNaN(lon)) {
+                    setLocation({ lat, lon });
+                    setSuggestions([]);
+                  }
+                } else {
+                  geocodeLocation(value).then((result) => {
+                    if (result) {
+                      setLocation({ lat: result.lat, lon: result.lon });
+                      setLocationName(result.name);
+                      setSuggestions([]);
+                    } else {
+                      alert("Could not find location. Try coordinates like '37.77,-122.42'");
+                    }
+                  });
+                }
+              }
+            }}
+            className="location-header-search"
+          />
+          {suggestions.length > 0 && (
+            <div className="suggested-locations-div">
+              {suggestions.map((place, idx) => (
+                <div
+                  key={idx}
+                  className="clickable-locs"
+                  onClick={() => {
+                    const coords = place.coords;
+                    setLocation({ lat: coords.lat, lon: coords.lng });
+                    setLocationSearchValue(place.label);
+                    setLocationName(place.name);
+                    setSuggestions([]);
+                  }}
+                >
+                  {place.label}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="main-header-location">
+          <FontAwesomeIcon icon={faLocationDot} className='font-awesome-icons'/>
+          {locationName || "Detecting location..."} {location && `(${location.lat.toFixed(2)}, ${location.lon.toFixed(2)})`}
+        </div>
+      </div>
+      <p className='main-header'></p>
+      {error && <p className="error-text">{error}</p>}
+      {location ? (
+        <>
+          <div className="moon-time-container">
+            {moonImage && <img src={moonImage} alt="Moon phase" className="moon-image" />}
+            <div className="time-slider-box">
+              <label htmlFor="timeSlider" className="time-slider-label">🕐 Time of Night:</label>
+              <input
+                id="timeSlider"
+                type="range"
+                min="0"
+                max="23"
+                step="1"
+                value={time.getHours()}
+                onChange={handleTimeChange}
+                className="time-slider"
+              />
+              <p className="selected-time">Selected Time: {time.getHours()}:00</p>
+            </div>
+          </div>
+
+          <div className="info-sections">
+            {nwsForecast && (
+              <div className="weather-forecast">
+                <h2 className="forecast-header">
+                  <FontAwesomeIcon icon={faCloud} className='font-awesome-icons'/>NWS Forecast {forecastDay ? `for ${forecastDay}` : ''}</h2>
+                {nwsForecastIcon && (
+                  <img src={nwsForecastIcon} alt="Forecast icon" className="forecast-icon" />
+                )}
+                <p>{nwsForecast}</p>
+                <p><strong>Estimated Seeing:</strong> {estimatedSeeing}</p>
+                <p><strong>Estimated Transparency:</strong> {estimatedTransparency}</p>
+                <p className='nws-disclaimer'><FontAwesomeIcon icon={faCircleExclamation} className='font-awesome-icons'/>Based on NOAA forecast estimates. They may differ from actual sky conditions.</p>
+              </div>
+            )}
+
+            <div className="vis-obj-div">
+              <h2 className="vis-obj-header">🔭 Visible Objects</h2>
+              <ul className="second-vis-obj-div">
+                {visibleObjects.map((obj, index) => (
+                  <li key={index} className="vis-obj-list">
+                    <strong>{obj.name}</strong> – {obj.type} (Visible: {obj.time})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

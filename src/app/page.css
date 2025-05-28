@@ -1,0 +1,117 @@
+@media (prefers-color-scheme: dark) {
+    :root {
+      --background: #252330;
+      --foreground: #ededed;
+    }
+}
+
+body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: 'Coiny', sans-serif;
+}
+
+.font-awesome-icons {
+    margin-right: 7px;
+}
+
+.main-page {
+    background-color: #252330;
+    padding: 0px;
+    margin: 0px;
+}
+
+.main-header {
+    color: white;
+
+}
+
+.location-header-search {
+    font-family: 'Coiny', sans-serif;
+    background-color: #ffffff;
+    border-radius: 8px;
+    border: 0px;
+    margin-left: 150px;
+    margin-bottom: 5px;
+}
+
+.suggested-locations-div {
+    position: absolute;
+    top: calc(100% - 69px);
+    width: 25%;
+    right: 0;
+    background-color: #ffffff;
+    border-radius: 8px;
+    color: black;
+    z-index: 10;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clickable-locs {
+    cursor: pointer
+}
+
+.main-page-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    column-gap: 1.5rem;
+    position: relative;
+}
+
+.main-header {
+    grid-column: 2;
+    text-align: center;
+}
+
+.main-header-location {
+    grid-column: 2;
+    text-align: center;
+    font-size: 15px;
+    margin-top: 0.5rem;
+}
+
+.info-sections {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 2rem;
+    width: 100%;
+    margin-top: 2rem;
+}
+  
+.vis-obj-div {
+    width: 300px;
+    margin: 0;
+}
+.moon-time-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.time-slider-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-right: 100px;
+}
+
+.moon-image {
+    height: auto;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    margin-left: 25px;
+    margin-top: 5px;
+}
+
+.nws-disclaimer {
+    color: red;
+}
